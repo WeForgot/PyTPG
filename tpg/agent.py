@@ -1,10 +1,14 @@
 from tpg.program import Program
 import pickle
+import numpy as np
 
 """
 Simplified wrapper around a (root) team for easier interface for user.
 """
 class Agent:
+
+    NumSharedRegisters = 8
+    SharedRegSize = 8
 
     """
     Create an agent with a team.
@@ -12,18 +16,20 @@ class Agent:
     def __init__(self, team, num=1):
         self.team = team
         self.agentNum = num
+        self.sharedRegisters = np.zeros((Agent.SharedRegSize,Agent.NumSharedRegisters))
+
 
     """
     Gets an action from the root team of this agent / this agent.
     """
     def act(self, state):
-        return self.team.act(state)
+        return self.team.act(state, self.sharedRegisters)
 
     """
     Same as act, but with additional features. Use act for performance.
     """
     def act2(self, state, numStates=50):
-        return self.team.act2(state, numStates=numStates)
+        return self.team.act2(state, self.sharedRegisters, numStates=numStates)
 
     """
     Give this agent/root team a reward for the given task

@@ -2,6 +2,7 @@ from tpg.program import Program
 import numpy as np
 from tpg.utils import flip
 import random
+from tpg.agent import Agent
 
 """
 A team has multiple learners, each learner has a program which is executed to
@@ -15,15 +16,19 @@ class Learner:
     Create a new learner, either copied from the original or from a program or
     action. Either requires a learner, or a program/action pair.
     """
-    def __init__(self, learner=None, program=None, action=None, numRegisters=8):
+    def __init__(self, learner=None, program=None, action=None, numRegisters=8, sharedIndex=0, isWriter=False):
         if learner is not None:
             self.program = Program(instructions=learner.program.instructions)
             self.action = learner.action
             self.registers = np.zeros(len(learner.registers), dtype=float)
+            self.sharedIndex = learner.sharedIndex
+            self.isWriter = learner.isWriter
         elif program is not None and action is not None:
             self.program = program
             self.action = action
             self.registers = np.zeros(numRegisters, dtype=float)
+            self.sharedIndex = sharedIndex
+            self.isWriter = isWriter
 
         if not self.isActionAtomic():
             self.action.numLearnersReferencing += 1
@@ -37,22 +42,27 @@ class Learner:
     """
     Get the bid value, highest gets its action selected.
     """
-    def bid(self, state):
-        Program.execute(state, self.registers,
+    def bid(self, state, sharedRegs):
+        if self.isWriter:
+            Program.execute_shared(state, self.registers, sharedRegs, self.sharedIndex,
                         self.program.modes, self.program.operations,
-                        self.program.destinations, self.program.sources)
-
-        return self.registers[0]
+                        self.program.shared, self.program.destinations, self.program.sources)
+            return None
+        else:
+            Program.execute(state, self.registers, sharedRegs, self.sharedIndex,
+                            self.program.modes, self.program.operations,
+                            self.program.shared, self.program.destinations, self.program.sources)
+            return self.registers[0]
 
     """
     Returns the action of this learner, either atomic, or requests the action
     from the action team.
     """
-    def getAction(self, state, visited):
+    def getAction(self, state, sharedRegs, visited):
         if self.isActionAtomic():
             return self.action
         else:
-            return self.action.act(state, visited)
+            return self.action.act(state, sharedRegs, visited)
 
 
     """
@@ -77,12 +87,15 @@ class Learner:
                 self.program.mutate(pMutProg, pDelInst, pAddInst, pSwpInst, pMutInst,
                     len(self.registers), uniqueProgThresh,
                     inputs=inputs, outputs=outputs, update=update)
+                if random.random() < 0.2:
+                    self.isWriter = not self.isWriter
 
             # mutate the action
             if flip(pMutAct):
                 changed = True
                 self.mutateAction(pActAtom, atomics, allTeams, parentTeam,
                                   multiActs, pSwapMultiAct, pChangeMultiAct)
+                self.sharedIndex = random.randint(0, Agent.NumSharedRegisters)
 
     """
     Changes the action, into an atomic or team.

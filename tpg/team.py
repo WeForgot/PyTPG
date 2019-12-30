@@ -21,19 +21,19 @@ class Team:
     """
     Returns an action to use based on the current state.
     """
-    def act(self, state, visited=set()):
+    def act(self, state, sharedRegs, visited=set()):
         visited.add(self) # track visited teams
 
         topLearner = max([lrnr for lrnr in self.learners
                 if lrnr.isActionAtomic() or lrnr.action not in visited],
-            key=lambda lrnr: lrnr.bid(state))
+            key=lambda lrnr: lrnr.bid(state, sharedRegs))
 
-        return topLearner.getAction(state, visited=visited)
+        return topLearner.getAction(state, sharedRegs, visited=visited)
 
     """
     Same as act, but with additional features. Use act for performance.
     """
-    def act2(self, state, visited=set(), numStates=50):
+    def act2(self, state, sharedRegs, visited=set(), numStates=50):
         visited.add(self) # track visited teams
 
         # first get candidate (unvisited) learners
@@ -44,13 +44,13 @@ class Team:
         topBid = learners[0].bid(state)
         learners[0].saveState(state, numStates=numStates)
         for lrnr in learners[1:]:
-            bid = lrnr.bid(state)
+            bid = lrnr.bid(state, sharedRegs)
             lrnr.saveState(state, numStates=numStates)
             if bid > topBid:
                 topLearner = lrnr
                 topBid = bid
 
-        return topLearner.getAction(state, visited=visited)
+        return topLearner.getAction(state, sharedRegs, visited=visited)
 
     """
     Adds learner to the team and updates number of references to that program.

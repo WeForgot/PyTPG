@@ -369,7 +369,7 @@ class Trainer:
                 regs = np.zeros(len(lrnr.registers))
                 Program.execute(state, regs,
                                 lrnr.program.modes, lrnr.program.operations,
-                                lrnr.program.destinations, lrnr.program.sources)
+                                lrnr.program.shared, lrnr.program.destinations, lrnr.program.sources)
                 lrnrInputs.append(state)
                 lrnrOutputs.append(regs[0])
 

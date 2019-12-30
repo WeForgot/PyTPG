@@ -21,7 +21,7 @@ class Program:
     Src: At-least # of bits to store size of input. The index to take from
         input, or a register depending on Mode.
     """
-    instructionLengths   = [1,3,3,23]
+    instructionLengths   = [1,3,1,3,23]
 
     idCount = 0 # unique id of each program
 
@@ -43,13 +43,17 @@ class Program:
     Executes the program which returns a single final value.
     """
     @njit
-    def execute(inpt, regs, modes, ops, dsts, srcs):
+    def execute(inpt, regs, shared, shareIndex, modes, ops, shrs, dsts, srcs):
         regSize = len(regs)
+        shrSize = len(shared)
         inptLen = len(inpt)
         for i in range(len(modes)):
             # first get source
             if modes[i] == False:
-                src = regs[srcs[i]%regSize]
+                if shrs[i] == True:
+                    src = shared[shareIndex][srcs[i]%shrSize]
+                else:
+                    src = regs[srcs[i]%regSize]
             else:
                 src = inpt[srcs[i]%inptLen]
 
@@ -68,12 +72,66 @@ class Program:
                 if y != 0:
                     regs[dest] = x/y
             elif op == 4:
-                regs[dest] = math.cos(y)
+                #regs[dest] = math.cos(y)
+                regs[dest] = min(x,y)
             elif op == 5:
-                if y > 0:
-                    regs[dest] = math.log(y)
+                #if y > 0:
+                    #regs[dest] = math.log(y)
+                regs[dest] = max(x,y)
             elif op == 6:
-                regs[dest] = math.exp(y)
+                #regs[dest] = math.exp(y)
+                sums = x+y
+                if sums != 0:
+                    regs[dest] = y/sums
+            elif op == 7:
+                if x < y:
+                    regs[dest] = x*(-1)
+
+            if math.isnan(regs[dest]):
+                regs[dest] = 0
+            elif regs[dest] == np.inf:
+                regs[dest] = np.finfo(np.float64).max
+            elif regs[dest] == np.NINF:
+                regs[dest] = np.finfo(np.float64).min
+    
+    """
+    Executes the program which returns a single final value.
+    """
+    @njit
+    def execute_shared(inpt, regs, shared, shareIndex, modes, ops, shrs, dsts, srcs):
+        regSize = len(regs)
+        shrSize = len(shared)
+        inptLen = len(inpt)
+        for i in range(len(modes)):
+            # first get source
+            if modes[i] == False:
+                if shrs[i] == True:
+                    src = shared[shareIndex][srcs[i]%shrSize]
+                else:
+                    src = regs[srcs[i]%regSize]
+            else:
+                src = inpt[srcs[i]%inptLen]
+
+            # do operation
+            op = ops[i]
+            x = regs[dsts[i]]
+            y = src
+            dest = dsts[i]%regSize
+            if op == 0:
+                regs[dest] = x+y
+            elif op == 1:
+                regs[dest] = x-y
+            elif op == 2:
+                regs[dest] = x*y
+            elif op == 3:
+                if y != 0:
+                    regs[dest] = x/y
+            elif op == 4: # Copy
+                shared[dest] = regs[dest]
+            elif op == 5: # Max
+                regs[dest] = max(x,y)
+            elif op == 6: # Min
+                regs[dest] = min(x,y)
             elif op == 7:
                 if x < y:
                     regs[dest] = x*(-1)
@@ -99,14 +157,17 @@ class Program:
                 getIntSegment(inst, sum(Program.instructionLengths[:2]),
                         Program.instructionLengths[2], totalLen),
                 getIntSegment(inst, sum(Program.instructionLengths[:3]),
-                        Program.instructionLengths[3], totalLen)
+                        Program.instructionLengths[3], totalLen),
+                getIntSegment(inst, sum(Program.instructionLengths[:4]),
+                        Program.instructionLengths[4], totalLen)
             ]
             for inst in self.instructions])
 
         self.modes = np.array(instsData[:,0], dtype = bool)
         self.operations = np.array(instsData[:,1], dtype = np.int8)
-        self.destinations = np.array(instsData[:,2], dtype = np.int8)
-        self.sources = np.array(instsData[:,3], dtype = np.int32)
+        self.shared = np.array(instsData[:,2], dtype=bool)
+        self.destinations = np.array(instsData[:,3], dtype = np.int8)
+        self.sources = np.array(instsData[:,4], dtype = np.int32)
 
 
     """
@@ -137,7 +198,7 @@ class Program:
                         output = lrnrOutputs[j]
                         regs = np.zeros(regSize)
                         Program.execute(input, regs, self.modes, self.operations,
-                                        self.destinations, self.sources)
+                                        self.shared, self.destinations, self.sources)
                         myOut = regs[0]
                         if abs(output-myOut) < uniqueProgThresh:
                             unique = False
