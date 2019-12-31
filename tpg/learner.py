@@ -47,12 +47,11 @@ class Learner:
             Program.execute_shared(state, self.registers, sharedRegs, self.sharedIndex,
                         self.program.modes, self.program.operations,
                         self.program.shared, self.program.destinations, self.program.sources)
-            return None
         else:
             Program.execute(state, self.registers, sharedRegs, self.sharedIndex,
                             self.program.modes, self.program.operations,
                             self.program.shared, self.program.destinations, self.program.sources)
-            return self.registers[0]
+        return self.registers[0]
 
     """
     Returns the action of this learner, either atomic, or requests the action
