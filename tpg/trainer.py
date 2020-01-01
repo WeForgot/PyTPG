@@ -69,7 +69,7 @@ class Trainer:
                 a1 = [random.uniform(0,1) for _ in range(self.actions)]
                 a2 = [random.uniform(0,1) for _ in range(self.actions)]
             l1 = Learner(program=Program(maxProgramLength=initMaxProgSize),
-                                         action=a1, numRegisters=registerSize)
+                                         action=a1, numRegisters=registerSize, isWriter=True)
             l2 = Learner(program=Program(maxProgramLength=initMaxProgSize),
                                          action=a2, numRegisters=registerSize)
 

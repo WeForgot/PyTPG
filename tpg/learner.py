@@ -86,7 +86,7 @@ class Learner:
                 self.program.mutate(pMutProg, pDelInst, pAddInst, pSwpInst, pMutInst,
                     len(self.registers), uniqueProgThresh,
                     inputs=inputs, outputs=outputs, update=update)
-                if random.random() < 0.2:
+                if random.random() < 0.5:
                     self.isWriter = not self.isWriter
 
             # mutate the action

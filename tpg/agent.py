@@ -19,6 +19,8 @@ class Agent:
         self.sharedRegisters = np.zeros((Agent.SharedRegSize,Agent.NumSharedRegisters))
 
 
+    def reset(self):
+        self.sharedRegisters = np.zeros((Agent.SharedRegSize,Agent.NumSharedRegisters))
     """
     Gets an action from the root team of this agent / this agent.
     """

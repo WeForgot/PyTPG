@@ -11,11 +11,12 @@ class Program:
 
     """
     bits for:
-    mode   op    dest       src
-    1      111   11111...   11111111111...
+    mode   op   share     dest       src
+    1      111  1         11111...   11111111111...
     Mode: Always 1 bit, whether to use register or input.
     Op: Always 3 bits, one of 8 math operations (add, sub, mult, div, cos, log,
         exp, neg).
+    Share: A single bit describing whether to use shared registers or private
     Dest: At-least # of bits to store # of registers. The register to place the
         result of the instruction into.
     Src: At-least # of bits to store size of input. The index to take from
@@ -126,15 +127,8 @@ class Program:
             elif op == 3:
                 if y != 0:
                     regs[dest] = x/y
-            elif op == 4: # Copy
+            else: # Copy
                 shared[dest] = regs[dest]
-            elif op == 5: # Max
-                regs[dest] = max(x,y)
-            elif op == 6: # Min
-                regs[dest] = min(x,y)
-            elif op == 7:
-                if x < y:
-                    regs[dest] = x*(-1)
 
             if math.isnan(regs[dest]):
                 regs[dest] = 0
